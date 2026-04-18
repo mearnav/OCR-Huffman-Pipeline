@@ -1,0 +1,21 @@
+# Data
+Simulated Noisy Office/
+data/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.pytest_cache/
+
+# Gradio
+.gradio/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+.ipynb_checkpoints/

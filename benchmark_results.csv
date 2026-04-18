@@ -1,0 +1,16 @@
+metric,value
+emnist_mnist_no_noise,0.9697
+emnist_mnist_gaussian,0.9692
+emnist_mnist_saltpepper,0.9692
+noisyoffice_crops_47class,0.8834
+denoiser_mse,0.000429
+denoiser_psnr_db,33.67
+latency_denoise_mean_ms,135.6
+latency_segment_mean_ms,262.5
+latency_ocr_mean_ms,22.2
+compression_avg_ratio,2.027
+compression_avg_entropy,2.692
+compression_avg_efficiency,0.333
+latency_huffman_encode_mean_ms,0.789
+latency_huffman_decode_mean_ms,0.457
+latency_total_mean_ms,421.5
