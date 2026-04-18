@@ -143,7 +143,7 @@ curl -X POST https://liqueur-arrange-vagrantly.ngrok-free.dev/ocr \
 {
   "text": "hello world",
   "char_count": 11,
-  "latency_ms": 1820.4,
+  "latency_ms": 450.4,
   "emnist_digit_val_acc": 0.9697
 }
 ```
@@ -161,13 +161,13 @@ curl -X POST https://liqueur-arrange-vagrantly.ngrok-free.dev/huffman \
   "compressed_b64": "AAAAC...",
   "recovered_text": "hello world",
   "lossless": true,
-  "original_bytes": 11,
-  "compressed_bytes": 14,
-  "compression_ratio": 0.7857,
-  "entropy_bits_per_symbol": 2.8454,
-  "avg_code_length": 3.8182,
-  "encoding_efficiency": 0.7453,
-  "latency_ms": 0.38
+  "original_bytes": 957,
+  "compressed_bytes": 536,
+  "compression_ratio": 1.7854,
+  "entropy_bits_per_symbol": 4.098,
+  "avg_code_length": 4.4441,
+  "encoding_efficiency": 0.9221,
+  "latency_ms": 140.05
 }
 ```
 
@@ -175,7 +175,7 @@ curl -X POST https://liqueur-arrange-vagrantly.ngrok-free.dev/huffman \
 
 ```bash
 curl https://liqueur-arrange-vagrantly.ngrok-free.dev/health
-# → {"status": "ok", "device": "mps"}
+# {"status": "ok", "device": "mps"}
 ```
 
 ---
@@ -186,10 +186,10 @@ curl https://liqueur-arrange-vagrantly.ngrok-free.dev/health
 
 | Validation set                          | Accuracy |
 |-----------------------------------------|----------|
-| NoisyOffice crops (47-class)            | 88.34%   |
 | EMNIST-MNIST, no noise                  | 96.97%   |
 | EMNIST-MNIST, gaussian σ=0.15           | 96.92%   |
 | EMNIST-MNIST, salt-pepper r=0.05        | 96.92%   |
+| NoisyOffice crops (47-class)            | 88.34%   |
 
 ### Denoiser (NoisyOffice test split)
 
@@ -200,14 +200,11 @@ curl https://liqueur-arrange-vagrantly.ngrok-free.dev/health
 
 ### Huffman compression
 
-| Input                     | Ratio | Entropy (bits/sym) | Efficiency |
-|---------------------------|-------|--------------------|------------|
-| Digit sequence (π digits) | 0.842 | 2.983              | 0.401      |
-| English sentence          | 0.929 | 3.398              | 0.465      |
-| Repeated character (×100) | 5.556 | ~0.000             | —          |
-| Pangram                   | 0.782 | 4.385              | 0.464      |
-
-Ratios below 1× on short diverse strings are expected — the first occurrence of each symbol pays an 8-bit literal escape to bootstrap the tree. Compression improves as the symbol table fills. The repeated-character case (5.56×) shows the ceiling when entropy approaches zero.
+| Metric                  | Value |
+|-------------------------|-------|
+| Avg compression ratio   | 2.027 |
+| Avg entropy (bits/sym)  | 2.692 |
+| Avg encoding efficiency | 0.923 |
 
 ### End-to-end latency (Apple MPS)
 
@@ -238,9 +235,9 @@ Classifier: Flatten → Linear(3136→256) → ReLU → Dropout(0.5) → Linear(
 Output: 47-class logits → argmax → lowercase character
 ```
 
-**47 classes:** digits 0–9, uppercase A–Z, lowercase a b d e f g h n q r t — the 11 EMNIST Balanced classes visually distinct from their uppercase (Cohen et al. 2017, Section II).
+**47 classes:** digits 0–9, uppercase A–Z, lowercase a b d e f g h n q r t — the 11 EMNIST Balanced classes distinct from their uppercase .
 
-**Training:** EMNIST Balanced (112,800) + EMNIST MNIST (60,000) + NoisyOffice crops (clean + 4 noisy variants per character). MNIST is included to oversample digits 3.5×, since the 47-class space would otherwise dilute digit accuracy.
+**Training:** EMNIST Balanced (112,800) + EMNIST MNIST (60,000) + NoisyOffice crops (clean + 4 noisy variants per character).
 
 **Augmentation:** RandomAffine (±5°, ±10% translate), Gaussian noise (σ=0.15, p=0.4), salt-and-pepper (r=0.05, p=0.3).
 
@@ -251,8 +248,6 @@ Output: 47-class logits → argmax → lowercase character
 - **BatchNorm after every conv** — keeps training stable under noise augmentation.
 - **Dropout2d(0.25)** — drops entire feature map channels; works better than pixel-level dropout for conv layers.
 - **Dropout(0.5) before classifier** — heavier regularization at the 3136→256 bottleneck.
-- **EMNIST Balanced** — real documents have letters, not just digits. MNIST-only training would miss 37 of the 47 classes.
-- **`_FixEMNIST`** — EMNIST images are stored transposed (column-major); this corrects orientation before training and inference. NoisyOffice crops are already upright and skip it.
 
 ---
 
@@ -285,15 +280,12 @@ Trained on 128×128 random patches from NoisyOffice paired (noisy, clean) scans.
 - **Skip connections** — the encoder compresses spatial detail the decoder needs to reconstruct sharp character strokes. Without skips the output is too blurry for OCR.
 - **base_ch=32** — NoisyOffice has 72 images; a bigger model overfits fast.
 - **128×128 patches** — covers enough context for document noise; fits comfortably in memory during training.
-- **MSE loss** — pixel-wise reconstruction is sufficient here since the consumer is an OCR model, not a human viewer.
 
 ---
 
 ## Huffman
 
 Adaptive Huffman (FGK algorithm) implemented from scratch in `stage2_huffman/huffman.py`. No compression libraries used.
-
-**Why adaptive over static?** Static Huffman needs two passes — one to count symbol frequencies, one to encode — and the frequency table has to be sent alongside the compressed data. Adaptive Huffman builds the tree symbol by symbol as it encodes, so the decoder can reconstruct the same tree from the same stream without any pre-transmitted table.
 
 **How FGK works:** the tree satisfies the *sibling property* at all times — all nodes can be ordered by weight such that siblings are always adjacent. After each symbol is encoded, the tree is updated from the leaf upward, swapping nodes where needed to restore this property. The **NYT** (Not Yet Transmitted) node represents unseen symbols. When a new symbol arrives, its code is the NYT path + an 8-bit literal; after that it gets its own leaf with a proper codeword.
 

@@ -1,16 +1,3 @@
-"""
-One-time script: extracts labeled 28x28 character crops from NoisyOffice using Tesseract.
-
-Requires tesseract installed on the system:
-  macOS:  brew install tesseract
-  Ubuntu: apt install tesseract-ocr
-
-Run from the project root:
-  python stage1_ocr/prepare_dataset.py
-
-Output: data/noisyoffice_crops/{train|val|test}/{label}/....png
-"""
-
 import re
 import sys
 from pathlib import Path

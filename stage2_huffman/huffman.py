@@ -5,7 +5,7 @@ Encoded format:
   [4 bytes big-endian: number of input bytes] [packed bitstream]
 
 The decoder reads the byte count from the header and stops after reconstructing
-exactly that many bytes, avoiding the need for a special EOF symbol.
+exactly that many bytes.
 """
 
 import struct
