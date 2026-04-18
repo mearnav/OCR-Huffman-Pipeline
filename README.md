@@ -122,6 +122,8 @@ ngrok http 8000
 
 ### Gradio demo
 
+**Live demo:** `https://e472401700d590adb3.gradio.live`
+
 ```bash
 python gradio_app.py
 ```
